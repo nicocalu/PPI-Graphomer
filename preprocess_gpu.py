@@ -14,16 +14,11 @@ import esm
 import torch
 import esm.inverse_folding
 import pandas as pd
-
+import argparse
 
 # 设置路径
-pdb_folder = "/public/mxp/xiejun/py_project/PP_1"
-# pdb_folder = "/public/mxp/xiejun/py_project/PPI_affinity/PDBs"
-# pdb_folder = "/public/mxp/xiejun/py_project/PPI_affinity/data/pdbs/benchmark79"
-# pdb_folder = "/public/mxp/xiejun/py_project/PPI_affinity/PP_1"
-pdb_folder = "/public/mxp/xiejun/py_project/PPI_affinity/data_final/pdb/benchmark79"
-
-index_file = os.path.join("/public/mxp/xiejun/py_project/PP", "index", "INDEX_general_PP.2020")
+# pdb_folder = "/public/mxp/xiejun/py_project/PP_1"
+# pdb_folder = "/public/mxp/xiejun/py_project/PPI-Graphomer/data_final/pdb/sequence_renamed1-4"
 
 # 常量定义
 standard_res =[
@@ -64,77 +59,6 @@ def list_to_ordered_set(lst):
     # 将字典的键转换为集合（按照出现的顺序）
     ordered_set = list(ordered_dict.keys())
     return ordered_set
-
-# 获取亲和力信息
-# affinity_dict = {}
-# with open(index_file, 'r') as f:
-#     lines = f.readlines()
-#     for line in lines[6:]:
-#         tokens = line.split()
-#         protein_name = tokens[0].strip()
-#         # if protein_name=="5nvl":
-#         #     print("here")
-#         # 匹配 Kd, Ki, 或 IC50
-#         match = re.search(r'(Kd|Ki|IC50)([=<>~])([\d\.]+)([munpfM]+)', line)
-#         if match:
-#             measure_type = match.group(1)
-#             operator = match.group(2)
-#             value = float(match.group(3))
-#             unit = match.group(4)
-#             # 单位转换成 M（摩尔）
-#             unit_multiplier = {
-#                 'mM': 1e-3,
-#                 'uM': 1e-6,
-#                 'nM': 1e-9,
-#                 'pM': 1e-12,
-#                 'fM': 1e-15
-#             }
-#             value_in_molar = value * unit_multiplier.get(unit, 1)  # 默认为 Mol
-#             # 计算以10为底的log值（pKa）
-#             if operator == '=' or operator == '~' or operator == '>':
-#                 pKa_value = -np.log10(value_in_molar)
-#             elif operator == '<':
-#                 # 如果是 '<'，则取 "<" 值更保守的一种处理方式
-#                 pKa_value = -np.log10(value_in_molar)
-#             affinity_dict[protein_name] = pKa_value
-
-
-
-# # skempi的亲和力数据
-# csv_file_path="/public/mxp/xiejun/py_project/PPI_affinity/skempi_v2.csv"
-# # 读取CSV文件，指定分隔符为分号
-# df = pd.read_csv(csv_file_path, delimiter=';')
-# df['Affinity_wt (M)'] = pd.to_numeric(df['Affinity_wt (M)'], errors='coerce')
-# # 初始化一个空字典
-# affinity_dict_temp = {}
-# # 遍历每一行，填充字典
-# for index, row in df.iterrows():
-#     pdb_name = row['#Pdb'].split("_")[0]
-#     affinity = -np.log(row['Affinity_wt (M)'])
-#     if pdb_name not in affinity_dict_temp:
-#         affinity_dict_temp[pdb_name] = []
-#     affinity_dict_temp[pdb_name].append(affinity)
-# affinity_dict={}
-# for pdb_name in list(affinity_dict_temp.keys()):
-#     if len(set(affinity_dict_temp[pdb_name]))==1 and affinity_dict_temp[pdb_name][0] is not None:
-#         affinity_dict[pdb_name]=affinity_dict_temp[pdb_name][0]
-
-# 论文中的skempi的26个野生型子集
-# 读取CSV文件
-# csv_file = '/public/mxp/xiejun/py_project/PPI_affinity/SI-File-5-protein-protein-test-set-3.csv'
-# data = pd.read_csv(csv_file)
-# # 筛选出第二列和第三列为空的行
-# no_mutation_data = data[data.iloc[:, 1].isnull() & data.iloc[:, 2].isnull()]
-# # 创建包含没有突变信息的PDB名称和亲和力数值的字典
-# affinity_dict = dict(zip(no_mutation_data.iloc[:, 0], no_mutation_data.iloc[:, 3]))
-
-# # benchmark79的亲和力数据
-# # 读取CSV文件
-# csv_file = '/public/mxp/xiejun/py_project/PPI_affinity/elife-07454-supp4-v4.csv'
-# data = pd.read_csv(csv_file)
-
-# # 创建包含 PDB 名称和亲和力数值的字典
-# affinity_dict = dict(zip(data.iloc[:, 0], data.iloc[:, 1]))
 
 
 
@@ -364,17 +288,14 @@ def extract_protein_data(pdb_file, model_esm, alphabet, model_esmif, alphabet_if
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-def single_worker(pdb_sub_dir_list, p_number):
+def single_worker(pdb_sub_dir_list, p_number,save_dir,pdb_folder):
     print("模型建立：")
-    save_dir="/public/mxp/xiejun/py_project/PPI_affinity/data_final/preprocess/gpu_enc_token/benchmark79/"
-
-    # save_dir="/public/mxp/xiejun/py_project/PPI_affinity/data_final/preprocess/gpu_pretrain2/test/"
-    # save_dir="/public/mxp/xiejun/py_project/PPI_affinity/data/preprocessed/gpu/addition_gpu_pretrain_contrastive3/"
+    # save_dir="/public/mxp/xiejun/py_project/PPI-Graphomer/data_final/preprocess/gpu/sequence_renamed1-4/"
 
     os.makedirs(save_dir, exist_ok=True)
     try:
-        device = torch.device('cuda:'+str(p_number%4) if torch.cuda.is_available() else 'cpu')
-        # device = torch.device('cuda:0')
+        # device = torch.device('cuda:'+str(p_number%1) if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:0')
         model_esm, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
         # model_esm, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
 
@@ -393,7 +314,7 @@ def single_worker(pdb_sub_dir_list, p_number):
                 print("pdb_file")
             torch.cuda.empty_cache()
             print("processed: ",pdb_file)
-        np.save(save_dir+"pdbbind"+str(p_number)+".npy", result_list,allow_pickle=True)
+        np.save(save_dir+"/gpu"+str(p_number)+".npy", result_list,allow_pickle=True)
         print("saved!")
     except Exception as e:
         with open(save_dir+'error{}.txt'.format(p_number),'w+') as f:
@@ -408,29 +329,25 @@ def single_worker(pdb_sub_dir_list, p_number):
 
 
 if __name__ == '__main__':
+
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--workers", '-n', default=2, type=int, help="The first number")
+    parser.add_argument("--save_dir", '-s', default="./data/preprocess/gpu/default/", type=str, help="Save directory")
+    parser.add_argument("--pdb_folder", '-p', default="./data/pdb/default/", type=str, help="pdb directory")
+
+    # assign your pdbs here
+    # pdb_folder = "./data_final/pdb/Accepted"
+    args = parser.parse_args()
+
+
     # multiprocessing.set_start_method("spawn")
-    processor=12
-    # pdb_dir_list_all=np.load("./pdb_list.npy",allow_pickle=True)
-    # pdb_dir_list=os.listdir(pdb_folder)
-    # skempi需要在affinity_dict和pdb交集中确定列表
-    # pdb_exist_list=[i+".pdb" for i in list(affinity_dict.keys())]
-    # pdb_dir_list=list(set(pdb_exist_list)&set(os.listdir(pdb_folder)))
-    # pdb_exist_list=list(affinity_dict.keys())
+    processor=args.workers
+    pdb_dir_list=os.listdir(args.pdb_folder)
 
-    # pdb_dir_list=list(set(pdb_exist_list)&set(os.listdir(pdb_folder)))
-    pdb_dir_list=os.listdir(pdb_folder)
 
-    # pdb_dir_list=[i.split("_")[0] for i in list(affinity_dict.keys())]
-    # single_worker(pdb_dir_list, 0)
-    # pdb_dir_list=pdb_dir_list_all[0:4]
-    # 2 3 5 1 2 4 //gpu11和computer4没跑，放到2,3跑完了跑
-    # pdb_dir_list=pdb_dir_list_all[0:len(pdb_dir_list_all)//6]
-    # pdb_dir_list=pdb_dir_list_all[0:len(pdb_dir_list_all)//6]
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6:len(pdb_dir_list_all)//6*2]
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*2:len(pdb_dir_list_all)//6*3]
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*3:len(pdb_dir_list_all)//6*4]
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*4:len(pdb_dir_list_all)//6*5]
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*5:len(pdb_dir_list_all)]
+
+
 
     p = Pool(processor)
     num_pdb = len(pdb_dir_list)
@@ -448,185 +365,6 @@ if __name__ == '__main__':
         end = num_pdb if i == processor - 1 else n * (i + 1)
         pdb_sub_dir_list = pdb_dir_list[start:end]
         # pdb_sub_dir_list = ['nz']
-        p.apply_async(single_worker, args=(pdb_sub_dir_list, i))
+        p.apply_async(single_worker, args=(pdb_sub_dir_list, i,args.save_dir,args.pdb_folder))
     p.close()
     p.join()
-
-
-
-    # pdb_dir_list_true=[]
-    # # 2 3 5 1 2 4 //gpu11和computer4没跑，放到2,3跑完了跑
-    # # pdb_dir_list=pdb_dir_list_all[0:len(pdb_dir_list_all)//6]
-    # pdb_dir_list=pdb_dir_list_all[0:len(pdb_dir_list_all)//6]
-    # To_process_index=[]
-    # num_pdb = len(pdb_dir_list)
-    # processor=19
-    # n = num_pdb // processor
-    # for i in range(processor):
-    #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/gpu2/pdbbind"+str(i)+".npy"):
-    #         To_process_index.append(i)
-    # for i in To_process_index:
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_dir_list_true.extend(pdb_dir_list[start:end])
-
-
-    # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6:len(pdb_dir_list_all)//6*2]
-    # To_process_index=[]
-    # processor=25
-    # num_pdb = len(pdb_dir_list)
-    # n = num_pdb // processor
-    # for i in range(processor):
-    #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/gpu3/pdbbind"+str(i)+".npy"):
-    #         To_process_index.append(i)
-    # for i in To_process_index:
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_dir_list_true.extend(pdb_dir_list[start:end])
-
-
-
-    # # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*2:len(pdb_dir_list_all)//6*3]
-
-    # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*3:len(pdb_dir_list_all)//6*4]
-    # To_process_index=[]
-    # processor=25
-    # num_pdb = len(pdb_dir_list)
-    # n = num_pdb // processor
-    # for i in range(processor):
-    #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/computer1/pdbbind"+str(i)+".npy"):
-    #         To_process_index.append(i)
-    # for i in To_process_index:
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_dir_list_true.extend(pdb_dir_list[start:end])
-
-
-    # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*4:len(pdb_dir_list_all)//6*5]
-    # To_process_index=[]
-    # processor=25
-    # num_pdb = len(pdb_dir_list)
-    # n = num_pdb // processor
-    # for i in range(processor):
-    #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/computer2/pdbbind"+str(i)+".npy"):
-    #         To_process_index.append(i)
-    # for i in To_process_index:
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_dir_list_true.extend(pdb_dir_list[start:end])
-
-    # pdb_dir_list=pdb_dir_list_all[len(pdb_dir_list_all)//6*5:len(pdb_dir_list_all)]
-    # To_process_index=[]
-    # processor=25
-    # num_pdb = len(pdb_dir_list)
-    # n = num_pdb // processor
-    # for i in range(processor):
-    #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/computer4/pdbbind"+str(i)+".npy"):
-    #         To_process_index.append(i)
-    # for i in To_process_index:
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_dir_list_true.extend(pdb_dir_list[start:end])
-
-
-    # pdb_dir_list=pdb_dir_list_true
-    # processor=26
-    # p = Pool(processor)
-    # num_pdb = len(pdb_dir_list)
-    # n = num_pdb // processor
-    # print(num_pdb)
-    # for i in range(processor):
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_sub_dir_list = pdb_dir_list[start:end]
-    #     print(pdb_sub_dir_list)
-    # print(num_pdb)
-    # input("确认信息：")
-    # for i in range(processor):
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_sub_dir_list = pdb_dir_list[start:end]
-    #     # pdb_sub_dir_list = ['nz']
-    #     p.apply_async(single_worker, args=(pdb_sub_dir_list, i))
-    # p.close()
-    # p.join()
-
-
-
-    # atom_length_list=[]
-    # for i in protein_dicts:
-    #     atom_length_list.append(i["interface_atoms"])
-    # dict_all=Counter(atom_length_list)
-    # print("max:",max(dict_all.keys()))
-    # print("min:",min(dict_all.keys()))
-    # plt.bar(dict_all.keys(), height=dict_all.values())
-    # plt.savefig("./atom_length.png")
-
-
-
-    # processor=16
-    # # pdb_dir_list = [f for f in os.listdir(pdb_folder) if f.endswith(".pdb")]
-    # pdb_dir_list_all=np.load("./pdb_list.npy",allow_pickle=True)
-    # pdb_dir_list=pdb_dir_list_all[0:len(pdb_dir_list_all)//6]
-    # # single_worker(['MX'],input_dir,output_dir,if_N)
-    # # single_worker(['fj'],input_dir,1)
-    # p = Pool(processor)
-    # # 重复的就不再跑一次了
-    # # processed_dir='./output_pdb_pepl9/'
-    # # processed_pdb_list=os.listdir(processed_dir)
-    # # To_process_dir=[]
-    # # for i in pdb_dir_list:
-    # #     if i not in processed_pdb_list:
-    # #         To_process_dir.append(i)
-    # num_pdb = len(pdb_dir_list)
-    # # num_pdb = len(pdb_dir_list)
-    # print(num_pdb)
-    # n = num_pdb // processor
-
-
-
-    # # 中途报错，将没写入的汇总起来
-    # # To_process_index=[]
-    # # for i in range(100):
-    # #     if not os.path.exists("/public/mxp/xiejun/py_project/PPI_affinity/pdbbind"+str(i)+".npy"):
-    # #         To_process_index.append(i)
-    # # To_process_dir=[]
-    # # for i in To_process_index:
-    # #     start = (num_pdb // 100) * i
-    # #     end = num_pdb if i == 100 - 1 else (num_pdb // 100) * (i + 1)
-    # #     To_process_dir.extend(pdb_dir_list[start:end])
-    # # pdb_dir_list=To_process_dir
-    # # num_pdb=len(To_process_dir)
-    # # n = num_pdb // processor
-    # # 以上注意删除
-
-
-    # for i in range(processor):
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_sub_dir_list = pdb_dir_list[start:end]
-    #     print(pdb_sub_dir_list)
-
-
-    # print(len(pdb_dir_list))
-    # input("确认信息：")
-
-
-    # print("确认无误")
-    # for i in range(processor):
-    #     start = n * i
-    #     end = num_pdb if i == processor - 1 else n * (i + 1)
-    #     pdb_sub_dir_list = pdb_dir_list[start:end]
-    #     # pdb_sub_dir_list = ['nz']
-    #     p.apply_async(single_worker, args=(pdb_sub_dir_list, i))
-
-    # # atom_length_list=[]
-    # # for i in protein_dicts:
-    # #     atom_length_list.append(i["interface_atoms"])
-    # # dict_all=Counter(atom_length_list)
-    # # print("max:",max(dict_all.keys()))
-    # # print("min:",min(dict_all.keys()))
-    # # plt.bar(dict_all.keys(), height=dict_all.values())
-    # # plt.savefig("./atom_length.png")
-    # p.close()
-    # p.join()

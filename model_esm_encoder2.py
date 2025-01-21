@@ -150,7 +150,7 @@ class MultiHeadAttention_Rope3D_bias(nn.Module):
         self.W_V = nn.Linear(config.d_embed, config.d_v * config.n_heads, bias=False)
         self.fc = nn.Linear(config.n_heads * config.d_v, config.d_embed, bias=False)
         self.ln = nn.LayerNorm(config.d_embed)
-        self.ia_type_emb=nn.Embedding(401,config.n_heads)
+        self.ia_type_emb=nn.Embedding(402,config.n_heads)
 
         self.ia_feat_linear = nn.Linear(1, 1, bias=False)
 
@@ -429,7 +429,7 @@ class Transformer(nn.Module):
     def __init__(self, config):
         super(Transformer, self).__init__()
         # self.esm2, self.alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-        # self.esm2, self.alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+        self.esm2, self.alphabet = esm.pretrained.esm2_t33_650M_UR50D()
         self.layer_norm_esm = nn.LayerNorm([config.pro_len,1280],elementwise_affine=False)
         self.layer_norm_esmif = nn.LayerNorm([config.pro_len,512],elementwise_affine=False)
         # self.layer_norm_hetatm = nn.LayerNorm([config.pro_len,396])
@@ -445,63 +445,50 @@ class Transformer(nn.Module):
 
         # self.encoder=Encoder(config)
         self.encoder2=Encoder2(config)
-        # self.encoder2_samechain=Encoder2(config)
 
-        self.projection = nn.Linear(config.d_embed*3, 1)
-        # self.projection_difchain = nn.Linear(config.d_embed, 1)
-        # self.projection_samechain = nn.Linear(config.d_embed, 1)
-        # self.projection = nn.Linear(16, 1)
+        # self.projection =nn.Sequential(
+        #     nn.Linear(97, 64),
+        #     nn.Dropout(0.3),
+        #     nn.ReLU(),
+        #     nn.Linear(64, 33),
+        #     nn.Dropout(0.3)
+        # )
+        self.projection =nn.Linear(97, 33)
 
-        # self.projection2=nn.Linear(config.pro_len,1)
+
+        self.projection2=nn.Linear(config.pro_len,1)
         self.config = config
+    def forward(self, enc_tokens, coor_features,hetatm_features, interface_atoms,\
+                interaction_type,interaction_matrix,res_mass_centor,seqs,protein_names,chain_id_res,mpnn_features,\
+                    masked_token,mask_padG):
 
-        # self.hidden_layer1 = nn.Linear(97, 64)  # 256 * 3 (after concatenation)
-        # self.hidden_layer2 = nn.Linear(64, 16)
 
-        # self.dropout = nn.Dropout(0.5)
+        # for name, param in self.esm2.named_parameters():
+        #     if 'layers.32' not in name:
+        #         param.requires_grad = False
+        self.esm2=self.esm2.eval()
+        for name, param in self.esm2.named_parameters():
+            param.requires_grad = False
 
-        self.pretrain_model=torch.load('/public/mxp/xiejun/py_project/PPI_affinity/runs/run_11_final/attempt7_pretrain_enc_dips2/model_25_0.pth',map_location=config.device)
-        # pretrain_model=torch.load('/public/mxp/xiejun/py_project/PPI_affinity/runs/run_11_final/attempt7_encoder_97/model_2_0.pth',map_location=device)
-        
-        
-
-    def forward(self, enc_tokens, seq_features, coor_features,hetatm_features, interface_atoms,\
-                interaction_type,interaction_matrix,res_mass_centor,seqs,protein_names,chain_id_res):
+        # print(masked_token.shape)
+        # print(mask_padG.shape)
         with torch.no_grad():
-            seq_features = self.pretrain_model.layer_norm_esm(seq_features)
-            coor_features = self.pretrain_model.layer_norm_esmif(coor_features)
-            # mpnn_features = self.pretrain_model.layer_norm_mpnn(mpnn_features)
+            enc_outputs1 = self.esm2(masked_token.type(torch.int32), repr_layers=[33], return_contacts=False)["representations"][33]
+        # print(enc_outputs1.shape)
+
+            enc_outputs1 = enc_outputs1[:,mask_padG.squeeze(0),:]
+            # print(enc_outputs1.shape)
+            enc_outputs1=F.pad(enc_outputs1,(0,0,0,2000-enc_outputs1.shape[1]))
 
 
-            hetatm_features =  self.pretrain_model.layer_norm_hetatm(hetatm_features)
-
-            # seq_features_pretrain = self.layer_norm_esm_pretrain(seq_features_pretrain)
-
-            # enc_outputs_mamba=self.mamba_model(enc_tokens)
-
-            enc_outputs1 = self.pretrain_model.compress_esm(seq_features)
-            enc_outputs2 = self.pretrain_model.compress_esmif(coor_features)
-
-            # enc_outputs3 =  self.pretrain_model.compress_mpnn(mpnn_features)
-
-            enc_outputs4 =  self.pretrain_model.compress_hetatm(hetatm_features)
-            # enc_outputs5 = self.compress_esm_pretrain(seq_features_pretrain)
+            # print(protein_names)
 
 
-            enc_outputs_pre=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
-            # enc_outputs=enc_outputs1
-            distance_matrix = torch.cdist(res_mass_centor, res_mass_centor)
-            for batch in range(len(chain_id_res)):
-                distance_matrix[batch,len(chain_id_res[batch]):,:]=0
-                distance_matrix[batch,:,len(chain_id_res[batch]):]=0
-            distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
-            distance_matrix[distance_matrix >= 1] = 0
+        enc_outputs1 = self.layer_norm_esm(enc_outputs1)
 
+        enc_outputs1 = self.compress_esm(enc_outputs1)
 
-            enc_outputs_pre=self.pretrain_model.encoder2(enc_outputs_pre,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
-
-
-        seq_features = self.layer_norm_esm(seq_features)
+        # seq_features = self.layer_norm_esm(seq_features)
         coor_features = self.layer_norm_esmif(coor_features)
         # mpnn_features = self.layer_norm_mpnn(mpnn_features)
 
@@ -511,8 +498,8 @@ class Transformer(nn.Module):
         # seq_features_pretrain = self.layer_norm_esm_pretrain(seq_features_pretrain)
 
         # enc_outputs_mamba=self.mamba_model(enc_tokens)
-
-        enc_outputs1 = self.compress_esm(seq_features)
+        
+        # enc_outputs1 = self.compress_esm(seq_features)
         enc_outputs2 = self.compress_esmif(coor_features)
 
         # enc_outputs3 =  self.compress_mpnn(mpnn_features)
@@ -520,32 +507,8 @@ class Transformer(nn.Module):
         enc_outputs4 =  self.compress_hetatm(hetatm_features)
         # enc_outputs5 = self.compress_esm_pretrain(seq_features_pretrain)
 
-
-        enc_outputs_enc=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
-        # enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4,enc_outputs_pre), dim=2)
-
-        # enc_outputs=enc_outputs1
-
-
-        distance_matrix = torch.cdist(res_mass_centor, res_mass_centor)
-        for batch in range(len(chain_id_res)):
-            distance_matrix[batch,len(chain_id_res[batch]):,:]=0
-            distance_matrix[batch,:,len(chain_id_res[batch]):]=0
-        distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
-        distance_matrix[distance_matrix >= 1] = 0
-        enc_outputs_enc=self.encoder2(enc_outputs_enc,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
-        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4,enc_outputs_enc,enc_outputs_pre), dim=2)
-
-
-        # enc_outputs=self.encoder(enc_outputs,enc_tokens)
-        # enc_outputs = self.projection(enc_outputs).reshape(enc_outputs.shape[0],-1)   # dec_logits: [batch_size, tgt_len, vocab_size]
-        # enc_outputs=torch.cat((enc_outputs,enc_outputs_enc), dim=2)
-        
-        # enc_outputs = self.projection2(enc_outputs.permute(0,2,1)).reshape(enc_outputs.shape[0],-1)
-        
-        # enc_outputs=torch.cat((enc_outputs,enc_outputs_enc), dim=2)
-
-
+        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
+        # print(res_mass_centor.shape)
 
         # distance_matrix = torch.cdist(res_mass_centor, res_mass_centor)
         # for batch in range(len(chain_id_res)):
@@ -553,29 +516,19 @@ class Transformer(nn.Module):
         #     distance_matrix[batch,:,len(chain_id_res[batch]):]=0
         # distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
         # distance_matrix[distance_matrix >= 1] = 0
-        # enc_outputs_difchain=self.encoder2_difchain(enc_outputs,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
-        # interface_atoms=~interface_atoms
-        # indices_diag = torch.arange(interface_atoms.size(1))
 
-        # # 将对角线元素设置为False
-        # interface_atoms[:,indices_diag, indices_diag] = False
+        # enc_outputs_enc=self.encoder2(enc_outputs,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
 
-        # enc_outputs_samechain=self.encoder2_samechain(enc_outputs,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
+        # # # enc_outputs=self.encoder(enc_outputs,enc_tokens)
+        # # # enc_outputs = self.projection(enc_outputs).reshape(enc_outputs.shape[0],-1)   # dec_logits: [batch_size, tgt_len, vocab_size]
+        # # # enc_outputs=torch.cat((enc_outputs,enc_outputs_enc), dim=2)
         
-        # enc_outputs_difchain=self.projection_difchain(enc_outputs_difchain)
-        # enc_outputs=self.projection_samechain(enc_outputs)
+        # # # enc_outputs = self.projection2(enc_outputs.permute(0,2,1)).reshape(enc_outputs.shape[0],-1)
+        
+        # enc_outputs=torch.cat((enc_outputs,enc_outputs_enc), dim=2)
 
 
-        # enc_outputs=torch.cat((enc_outputs_difchain,enc_outputs), dim=2)
-
-        enc_outputs = torch.mean(enc_outputs,dim=1)
-
-        # x = F.relu(self.hidden_layer1(enc_outputs))
-        # x = self.dropout(x)
-        # x = F.relu(self.hidden_layer2(x))
-        # enc_outputs = self.dropout(x)
-
-
+        # enc_outputs = torch.mean(enc_outputs,dim=1)
 
         # # enc_outputs_f1=self.encoder(enc_outputs,enc_tokens)
         # enc_outputs_f=self.encoder2(enc_outputs,enc_tokens,interface_atoms)

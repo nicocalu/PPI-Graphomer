@@ -1,19 +1,25 @@
 import os
+import re
 import numpy as np
 from Bio.PDB import PDBParser
 from Bio.SeqUtils import seq1
 from collections import defaultdict
+from tqdm import tqdm
 from scipy.spatial.distance import cdist
+from multiprocessing import Pool, cpu_count
+import multiprocessing
+from collections import Counter
+import matplotlib.pyplot as plt
 import esm
 import torch
 import esm.inverse_folding
+import pandas as pd
 from collections import OrderedDict
 import torch.nn.functional as F
 import torch.utils.data as Data
-
+import math
+import torch.nn as nn
 import argparse
-
-
 
 
 # 常量定义
@@ -56,7 +62,7 @@ def extract_protein_data(pdb_file, model_esm, alphabet, model_esmif, alphabet_if
     parser = PDBParser(QUIET=True)
     base_name = os.path.basename(pdb_file).split(".")
     structure = parser.get_structure(base_name[0]+'.'+base_name[1], pdb_file)
-    protein_name = os.path.basename(pdb_file).split("/")[-1]
+    protein_name = os.path.basename(pdb_file).split("/")[-1][0:-4]
 
 
     sequence = ""
@@ -814,11 +820,13 @@ def evaluate(model, loader,device):
     return epoch_loss / len(loader),output_all
 
 
-def inference(pdb_path,device="cuda:2"):
+def inference(pdb_path,device="cuda"):
+        
         device = torch.device(device if torch.cuda.is_available() else 'cpu')
         # device = torch.device('cuda:0')
         model_esm, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
         # model_esm, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
+
         # model_esm=torch.load("/public/mxp/xiejun/py_project/esm_finetune/myresult/attempt1/model_esm_8.pth")
         model_esm=model_esm.eval().to(device)
         model_esmif, alphabet_if = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
@@ -839,16 +847,25 @@ def inference(pdb_path,device="cuda:2"):
         )
         prefix="runs/run_11_final/attempt9_nompnn_enc_encpre4"
         transformer_model = torch.load('/public/mxp/xiejun/py_project/PPI-Graphomer/'+prefix+'/model_15_0.pth',map_location=device)
+        # transformer_model.save()
         valid_loss ,output_all= evaluate(transformer_model, val_loader,device)
         return output_all
 
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='inference for ppi—Graphomer')
-    parser.add_argument("--pdb", type=str, default="/public/home/kngll/BindCraft/1.pdb")
+
+
+    parser = argparse.ArgumentParser()
+    # parser.add_argument("--workers", '-n', default=1, type=int, help="The first number")
+    # parser.add_argument("--save_dir", '-s', default="./data_final/preprocess/gpu/default/", type=str, help="Save directory")
+    # parser.add_argument("--pdb_folder", '-p', default="./data_final/pdb/Accepted/", type=str, help="pdb directory")
+
+    parser.add_argument("--pdb", '-p', default="./data/6ne4.ent.pdb", type=str, help="pdb path")
     args = parser.parse_args()
-    # pdb_path="/public/home/kngll/BindCraft/6ne4ent.pdb"
-    aff=inference(args.pdb)
+
+    pdb_path=args.pdb
+    aff=inference(pdb_path)
     print(aff.item())
 
 
