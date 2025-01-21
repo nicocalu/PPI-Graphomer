@@ -84,7 +84,7 @@ class ScaledDotProductAttention_bias(nn.Module):
         scores=scores1+bias
         # scores=scores1
 
-        scores.masked_fill_(attn_mask_if, -1e9)  # Fills elements of self tensor with value where mask is True.
+        scores.masked_fill_(attn_mask, -1e9)  # Fills elements of self tensor with value where mask is True.
         attn = nn.Softmax(dim=-1)(scores)  # attn = self.dropout(F.softmax(attn, dim=-1))
         context = torch.matmul(attn, V)  # [batch_size, n_heads, len_q, d_v]
         return context, attn
@@ -150,7 +150,7 @@ class MultiHeadAttention_Rope3D_bias(nn.Module):
         self.W_V = nn.Linear(config.d_embed, config.d_v * config.n_heads, bias=False)
         self.fc = nn.Linear(config.n_heads * config.d_v, config.d_embed, bias=False)
         self.ln = nn.LayerNorm(config.d_embed)
-        self.ia_type_emb=nn.Embedding(401,config.n_heads)
+        self.ia_type_emb=nn.Embedding(402,config.n_heads)
 
         self.ia_feat_linear = nn.Linear(1, 1, bias=False)
 
@@ -161,13 +161,13 @@ class MultiHeadAttention_Rope3D_bias(nn.Module):
         )
         self.ln_ia_feat = nn.LayerNorm(config.n_heads)
 
-        # pe = torch.zeros(2000, config.d_k//3)
-        # position = torch.arange(0, 2000, dtype=torch.float).unsqueeze(1)
-        # div_term = torch.exp(torch.arange(0, config.d_k//3, 2).float() * (-math.log(10000.0) / config.d_k//3))
-        # pe[:, 0::2] = torch.sin(position * div_term)
-        # pe[:, 1::2] = torch.cos(position * div_term)
-        # pe = pe.unsqueeze(0).transpose(0, 1)
-        # self.register_buffer('pe', pe)
+        pe = torch.zeros(2000, config.d_k//3)
+        position = torch.arange(0, 2000, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, config.d_k//3, 2).float() * (-math.log(10000.0) / config.d_k//3))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
 
     def forward(self, input_Q, input_K, input_V, attn_mask,attn_if,interaction_type,interaction_matrix,res_mass_centor,distance_matrix):
         residual, batch_size = input_Q, input_Q.size(0)
@@ -256,6 +256,7 @@ class MultiHeadAttention_Rope3D_bias(nn.Module):
         #     _, inverse_sorted_indices = torch.sort(sorted_indices[i])
         #     K_z[i] = K_z[i].index_select(1, inverse_sorted_indices)
         # K=torch.cat((K_x,K_y,K_z),dim=3)
+
         # ia_type=torch.nn.functional.one_hot(interaction_type.cpu(),num_classes=211).type(torch.float32).cuda().permute(0, 3, 1, 2)
         ia_type=self.ia_type_emb(interaction_type).permute(0, 3, 1, 2)
         # 
@@ -447,7 +448,7 @@ class Transformer(nn.Module):
         self.encoder2=Encoder2(config)
         # self.encoder2_samechain=Encoder2(config)
 
-        self.projection = nn.Linear(config.d_embed*3, 1)
+        self.projection = nn.Linear(194, 1)
         # self.projection_difchain = nn.Linear(config.d_embed, 1)
         # self.projection_samechain = nn.Linear(config.d_embed, 1)
         # self.projection = nn.Linear(16, 1)
@@ -460,45 +461,45 @@ class Transformer(nn.Module):
 
         # self.dropout = nn.Dropout(0.5)
 
-        self.pretrain_model=torch.load('/public/mxp/xiejun/py_project/PPI_affinity/runs/run_11_final/attempt7_pretrain_enc_dips2/model_25_0.pth',map_location=config.device)
+        # self.pretrain_model=torch.load('/public/mxp/xiejun/py_project/PPI_affinity/runs/run_11_final/attempt7_pretrain_enc_dips3/model_13_0.pth',map_location=config.device)
         # pretrain_model=torch.load('/public/mxp/xiejun/py_project/PPI_affinity/runs/run_11_final/attempt7_encoder_97/model_2_0.pth',map_location=device)
         
         
 
     def forward(self, enc_tokens, seq_features, coor_features,hetatm_features, interface_atoms,\
-                interaction_type,interaction_matrix,res_mass_centor,seqs,protein_names,chain_id_res):
-        with torch.no_grad():
-            seq_features = self.pretrain_model.layer_norm_esm(seq_features)
-            coor_features = self.pretrain_model.layer_norm_esmif(coor_features)
-            # mpnn_features = self.pretrain_model.layer_norm_mpnn(mpnn_features)
+                interaction_type,interaction_matrix,res_mass_centor,seqs,protein_names,chain_id_res,seq_features_pretrain,mpnn_features):
+        # with torch.no_grad():
+        #     seq_features = self.pretrain_model.layer_norm_esm(seq_features)
+        #     coor_features = self.pretrain_model.layer_norm_esmif(coor_features)
+        #     # mpnn_features = self.pretrain_model.layer_norm_mpnn(mpnn_features)
 
 
-            hetatm_features =  self.pretrain_model.layer_norm_hetatm(hetatm_features)
+        #     hetatm_features =  self.pretrain_model.layer_norm_hetatm(hetatm_features)
 
-            # seq_features_pretrain = self.layer_norm_esm_pretrain(seq_features_pretrain)
+        #     # seq_features_pretrain = self.layer_norm_esm_pretrain(seq_features_pretrain)
 
-            # enc_outputs_mamba=self.mamba_model(enc_tokens)
+        #     # enc_outputs_mamba=self.mamba_model(enc_tokens)
 
-            enc_outputs1 = self.pretrain_model.compress_esm(seq_features)
-            enc_outputs2 = self.pretrain_model.compress_esmif(coor_features)
+        #     enc_outputs1 = self.pretrain_model.compress_esm(seq_features)
+        #     enc_outputs2 = self.pretrain_model.compress_esmif(coor_features)
 
-            # enc_outputs3 =  self.pretrain_model.compress_mpnn(mpnn_features)
+        #     # enc_outputs3 =  self.pretrain_model.compress_mpnn(mpnn_features)
 
-            enc_outputs4 =  self.pretrain_model.compress_hetatm(hetatm_features)
-            # enc_outputs5 = self.compress_esm_pretrain(seq_features_pretrain)
-
-
-            enc_outputs_pre=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
-            # enc_outputs=enc_outputs1
-            distance_matrix = torch.cdist(res_mass_centor, res_mass_centor)
-            for batch in range(len(chain_id_res)):
-                distance_matrix[batch,len(chain_id_res[batch]):,:]=0
-                distance_matrix[batch,:,len(chain_id_res[batch]):]=0
-            distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
-            distance_matrix[distance_matrix >= 1] = 0
+        #     enc_outputs4 =  self.pretrain_model.compress_hetatm(hetatm_features)
+        #     # enc_outputs5 = self.compress_esm_pretrain(seq_features_pretrain)
 
 
-            enc_outputs_pre=self.pretrain_model.encoder2(enc_outputs_pre,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
+        #     enc_outputs_pre=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
+        #     # enc_outputs=enc_outputs1
+        #     distance_matrix = torch.cdist(res_mass_centor, res_mass_centor)
+        #     for batch in range(len(chain_id_res)):
+        #         distance_matrix[batch,len(chain_id_res[batch]):,:]=0
+        #         distance_matrix[batch,:,len(chain_id_res[batch]):]=0
+        #     distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
+        #     distance_matrix[distance_matrix >= 1] = 0
+
+
+        #     enc_outputs_pre=self.pretrain_model.encoder2(enc_outputs_pre,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
 
 
         seq_features = self.layer_norm_esm(seq_features)
@@ -534,7 +535,7 @@ class Transformer(nn.Module):
         distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
         distance_matrix[distance_matrix >= 1] = 0
         enc_outputs_enc=self.encoder2(enc_outputs_enc,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
-        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4,enc_outputs_enc,enc_outputs_pre), dim=2)
+        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4,enc_outputs_enc), dim=2)
 
 
         # enc_outputs=self.encoder(enc_outputs,enc_tokens)
