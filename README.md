@@ -46,6 +46,3 @@ python evaluate.py  --batch_path [path_to_BatchData]
 ```
 We have divided the whole step into several items in order to speed up the process by separating the esm large model prediction process from the affinity prediction process.
 
-## Results
-In the results folder there are three files detailing the model's predictions. The txt file records the pcc and mae, the png image plots the scatter plot, and the csv file records the predicted results for each pdb.
-
