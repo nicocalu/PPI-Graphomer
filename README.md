@@ -23,10 +23,16 @@ Before you begin, ensure you have met the following requirements:
 - Dependencies listed in `requirements.txt`
 
 ```bash
-git clone https://github.com/yourusername/ppi-graphomer.git
+git clone https://github.com/xiebaoshu058/ppi-graphomer.git
 cd ppi-graphomer
+conda create -n ppi-graphomer python=3.9.18
+conda activate ppi-graphomer
 pip install -r requirements.txt
 ```
+Since installing torch_scatter directly might lead to issues, I opted for a local installation method. 
+You can download the package from [[link](https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp39-cp39-linux_x86_64.whl)] and then execute "pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl" to install it.
+Additionally, there may be some issues with the installed ESM library. You will need to navigate to the location of the downloaded library at your conda path (such as "/public/home/xiejun/miniconda3/envs/ppi_graphomer/lib/python3.9/site-packages/esm/inverse_folding"), and modify line 137 in util.py from batch = [(coords, None, seq)] to batch = [(coords, None, None)].
+
 ## Usage
 We provide two methods to run the script, single pdb or batch.
 
@@ -35,14 +41,27 @@ To predict single pdb, use the provided command-line interface:
 ```bash
 python inference.py --pdb [path_to_pdb]
 ```
+This script will output an affinity prediction value for the given PDB. For example: predict affinity: 9.022720336914062.
+
 If you need to make batch predictions, you should follow these steps:
 
 ```bash
 python preprocess_cpu.py --workers [cpu numbers] --save_dir [path_to_PreprocessedCpuData] --pdb_folder [path_to_pdbs]
 python preprocess_gpu.py --workers [cpu numbers] --save_dir [path_to_PreprocessedGpuData] --pdb_folder [path_to_pdbs]
+```
+These scripts will generate some pre-processed data, which will be stored in the 'preprocess' folder, such as "yourpath/PPI-Graphomer/data/preprocess/cpu/default/"
+```bash
 python data_check.py  --cpu_path [path_to_PreprocessedCpuData] -gpu_path [path_to_PreprocessedGpuData] --save_folder [path_to_CheckedData]
+```
+This script will check whether the previous outputs conform to the specifications. It will also display the number of samples, as well as the amino acid count of the longest and shortest samples.
+```bash
 python generate_batch.py  --data [path_to_CheckedData] -gpu_path [path_to_PreprocessedGpuData] --batch_path [path_to_BatchData]
+```
+This script will further organize the data.
+```bash
 python evaluate.py  --batch_path [path_to_BatchData]
 ```
+This script will print the model and output the correlation coefficient between the predicted values and labels for the batch.
+
 We have divided the whole step into several items in order to speed up the process by separating the esm large model prediction process from the affinity prediction process.
 
