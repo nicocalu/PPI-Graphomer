@@ -6,7 +6,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 
 
-
+# This code analyzes the correlation coefficient between IPAE scores and the standard values. We have provided the scoring results obtained using ColabFold.
 
 index_file = os.path.join("./data/INDEX_general_PP.2020")
 # 获取亲和力信息
