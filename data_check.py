@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import argparse
 
 
-# if_add_path = "/public/mxp/xiejun/py_project/PPI_affinity/benchmark79_gpu"
+# This code will verify the correctness of the data shape generated previously, ensuring that the features obtained from the CPU and GPU are aligned.
 
 def load_if_add_dict(if_add_path):
     if_add_dict = {}
@@ -16,8 +16,6 @@ def load_if_add_dict(if_add_path):
         for if_add_dict_single in if_add_list:
             if_add_dict.update(if_add_dict_single)
     return if_add_dict
-
-
 
 
 
