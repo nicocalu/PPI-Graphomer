@@ -13,15 +13,17 @@ import tqdm
 import pandas as pd
 import argparse
 
+
+# This code predicts the affinity of a batch of proteins and calculates the correlation coefficient with the standard values. The specific predicted values can be viewed in the evaluate.csv file.
+
+
+
+
 # Check if CUDA is available
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # prefix="runs/result/cchar"
-
-
-
-
 
 
 # Parameters
