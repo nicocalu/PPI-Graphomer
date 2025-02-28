@@ -15,6 +15,10 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
+
+# This code will predict the affinity for the specified PDB.
+
+
 # 常量定义
 standard_res =[
         "GLY" , 'G',
