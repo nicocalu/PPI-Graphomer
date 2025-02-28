@@ -7,12 +7,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from scipy.spatial.distance import cdist
 from multiprocessing import Pool, cpu_count
-import multiprocessing
-from collections import Counter
-import matplotlib.pyplot as plt
-import esm
 import torch
-import esm.inverse_folding
 import pandas as pd
 import argparse
 

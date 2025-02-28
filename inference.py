@@ -1,24 +1,16 @@
+# -*- coding: utf-8 -*-
 import os
-import re
 import numpy as np
 from Bio.PDB import PDBParser
 from Bio.SeqUtils import seq1
 from collections import defaultdict
-from tqdm import tqdm
 from scipy.spatial.distance import cdist
-from multiprocessing import Pool, cpu_count
-import multiprocessing
-from collections import Counter
-import matplotlib.pyplot as plt
 import esm
 import torch
 import esm.inverse_folding
-import pandas as pd
 from collections import OrderedDict
 import torch.nn.functional as F
 import torch.utils.data as Data
-import math
-import torch.nn as nn
 import argparse
 
 
@@ -187,7 +179,7 @@ def extract_protein_data(pdb_file, model_esm, alphabet, model_esmif, alphabet_if
     # 理应处理完索引index
     assert padG_index_list_delete==[]
     # 名字无所谓
-    concatenated_name = "_".join([f"{protein_name}{i}" for i in range(len(seq_single_chain))])
+    concatenated_name = "_".join([f"{protein_name}" for i in range(len(seq_single_chain))])
     # 形成tokens，注意这里包含开始和结尾token
     enc_inputs_labels, enc_inputs_strs, enc_tokens = batch_converter([(concatenated_name, full_sequence)])
     # 获取特征，不包括开始和结尾token
@@ -698,12 +690,12 @@ def process_train_data(train_data,if_add_dict, pro_len=2000):
 
     seqs.append(seq_temp)
     chain_id_res.append(item["chain_id_res"])
-    enc_tokens_temp=torch.cat(if_add_dict[item["protein_name"]][2],dim=0).type(torch.int16)
+    enc_tokens_temp=torch.cat(if_add_dict[item["protein_name"].replace(".pdb","")][2],dim=0).type(torch.int16)
     enc_tokens.append(F.pad(enc_tokens_temp,(0,pro_len-enc_tokens_temp.shape[0])))
-    seq_feat_temp=torch.cat(if_add_dict[item["protein_name"]][0],dim=1).squeeze()
+    seq_feat_temp=torch.cat(if_add_dict[item["protein_name"].replace(".pdb","")][0],dim=1).squeeze()
     seq_features.append(F.pad(seq_feat_temp,(0,0,0,pro_len-seq_feat_temp.shape[0])))
 
-    coor_feat_temp=torch.cat(if_add_dict[item["protein_name"]][1],dim=0)
+    coor_feat_temp=torch.cat(if_add_dict[item["protein_name"].replace(".pdb","")][1],dim=0)
     coor_features.append(F.pad(coor_feat_temp,(0,0,0,pro_len-enc_tokens_temp.shape[0])))
 
 
@@ -729,7 +721,7 @@ def process_train_data(train_data,if_add_dict, pro_len=2000):
     interaction_matrix.append(F.pad(if_matrix,(0,0,0,pro_len-if_matrix.shape[0],0,pro_len-if_matrix.shape[0])))
     mass_centor=torch.tensor(item["res_mass_centor"])
     res_mass_centor.append(F.pad(mass_centor,(0,0,0,pro_len-mass_centor.shape[0])))
-    hetatm_features_single=torch.tensor(item["hetatm_features"]).type(torch.float32)
+    hetatm_features_single=torch.tensor(np.stack(item["hetatm_features"])).type(torch.float32)
     hetatm_features.append(F.pad(hetatm_features_single,(0,0,0,pro_len-hetatm_features_single.shape[0])))
 
     batch_data={
@@ -845,8 +837,8 @@ def inference(pdb_path,device="cuda"):
                     
             batch_size=batch_size, shuffle=False,collate_fn=collate_fn
         )
-        prefix="runs/run_11_final/attempt9_nompnn_enc_encpre4"
-        transformer_model = torch.load('/public/mxp/xiejun/py_project/PPI-Graphomer/'+prefix+'/model_15_0.pth',map_location=device)
+        # prefix="runs/run_11_final/attempt9_nompnn_enc_encpre4"
+        transformer_model = torch.load('./model/model_0.pth',map_location=device)
         # transformer_model.save()
         valid_loss ,output_all= evaluate(transformer_model, val_loader,device)
         return output_all
@@ -861,12 +853,13 @@ if __name__ == '__main__':
     # parser.add_argument("--save_dir", '-s', default="./data_final/preprocess/gpu/default/", type=str, help="Save directory")
     # parser.add_argument("--pdb_folder", '-p', default="./data_final/pdb/Accepted/", type=str, help="pdb directory")
 
-    parser.add_argument("--pdb", '-p', default="./data/6ne4.ent.pdb", type=str, help="pdb path")
+    parser.add_argument("--pdb", '-p', default="./data/1E96.pdb", type=str, help="pdb path")
     args = parser.parse_args()
 
     pdb_path=args.pdb
     aff=inference(pdb_path)
-    print(aff.item())
+    print("completed!")
+    print("predict affinity:",aff.item())
 
 
 

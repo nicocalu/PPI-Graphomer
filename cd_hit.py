@@ -4,6 +4,10 @@ from Bio import SeqIO
 from subprocess import run, PIPE
 import tqdm
 
+
+# This script will use CD-HIT for deduplication. Please ensure that you have downloaded CD-HIT and set the correct PDB path.
+
+
 def write_fasta(sequences, file_path):
     """将序列写入FASTA文件"""
     with open(file_path, 'w') as f:
@@ -37,7 +41,7 @@ def parse_fasta(file_path):
 
     return sequences
 
-def cdhit_deduplicate(source_path,  identity_threshold=0.9):
+def cdhit_deduplicate(source_path,  identity_threshold=0.7):
     """
     使用CD-HIT对序列去冗余
 
@@ -46,7 +50,7 @@ def cdhit_deduplicate(source_path,  identity_threshold=0.9):
     :param identity_threshold: 序列身份阈值 (默认0.6)
     :return: 去冗余后的序列列表
     """
-    cd_hit_executable = "/public/mxp/xiejun/py_project/cd-hit-v4.8.1-2019-0228/cd-hit"
+    cd_hit_executable = "./your_cd-hit_path/cd-hit"
     # 创建临时文件
     with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as input_file, \
          tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as output_file:
@@ -88,9 +92,7 @@ def cdhit_deduplicate(source_path,  identity_threshold=0.9):
 
         return dedup_sequences
 
-# 示例用法:
-# cd_hit_path = "/home/mxp/llps/cd-hit-v4.8.1-2019-0228/cd-hit" 
-source_path="/public/mxp/xiejun/py_project/PPI_affinity/data_final/pdb/5fold/"
+source_path="./data/pdb/benmark79/"
 # all_path="/public/mxp/xiejun/py_project/PPI_affinity/data_final/pdb/dips_plus/"
 deduplicated_sequences = cdhit_deduplicate(source_path)
 print(len(deduplicated_sequences))

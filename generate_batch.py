@@ -2,19 +2,11 @@ import os
 import math
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.utils.data as Data
-from torchinfo import summary
-import esm
 import torch.nn.functional as F
 import random
 import tqdm
-import pandas as pd
-import gc
 import argparse
 
 
@@ -92,7 +84,7 @@ def process_train_data(train_data, pro_len, batch_size=1000):
         interaction_matrix.append(F.pad(if_matrix,(0,0,0,pro_len-if_matrix.shape[0],0,pro_len-if_matrix.shape[0])))
         mass_centor=torch.tensor(item["res_mass_centor"])
         res_mass_centor.append(F.pad(mass_centor,(0,0,0,pro_len-mass_centor.shape[0])))
-        hetatm_features_single=torch.tensor(item["hetatm_features"]).type(torch.float32)
+        hetatm_features_single=torch.tensor(np.stack(item["hetatm_features"])).type(torch.float32)
         hetatm_features.append(F.pad(hetatm_features_single,(0,0,0,pro_len-hetatm_features_single.shape[0])))
 
         if (idx + 1) % batch_size == 0:
@@ -177,7 +169,8 @@ if __name__ == '__main__':
         for i, batch in enumerate(process_train_data(data, pro_len, batch_size)):
             torch.save(batch, os.path.join(output_path, f"batch_{i}.pt"))
             print(f"Saved batch {i}")
-        print("save all")
+        # print("save all")
+    print("completed!")
 
 
 

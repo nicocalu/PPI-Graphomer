@@ -1,19 +1,13 @@
 import os
-import re
 import numpy as np
 from Bio.PDB import PDBParser
 from Bio.SeqUtils import seq1
-from collections import defaultdict
 from tqdm import tqdm
-from scipy.spatial.distance import cdist
 from multiprocessing import Pool, cpu_count
 import multiprocessing
-from collections import Counter
-import matplotlib.pyplot as plt
 import esm
 import torch
 import esm.inverse_folding
-import pandas as pd
 import argparse
 
 # 设置路径
@@ -213,6 +207,7 @@ def extract_protein_data(pdb_file, model_esm, alphabet, model_esmif, alphabet_if
     enc_tokens_all=enc_tokens
     # 不包括起始和结尾token
     enc_tokens = enc_tokens[:, 1:-1]
+    torch.cuda.empty_cache()
 
     # Combine padG_index_list and separator_indices
     combined_index_list = sorted(updated_padG_index_list + separator_indices)
@@ -288,21 +283,12 @@ def extract_protein_data(pdb_file, model_esm, alphabet, model_esmif, alphabet_if
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-def single_worker(pdb_sub_dir_list, p_number,save_dir,pdb_folder):
+def single_worker(pdb_sub_dir_list, p_number,save_dir,pdb_folder,device,model_esm,alphabet,model_esmif,alphabet_if):
     print("模型建立：")
     # save_dir="/public/mxp/xiejun/py_project/PPI-Graphomer/data_final/preprocess/gpu/sequence_renamed1-4/"
 
     os.makedirs(save_dir, exist_ok=True)
     try:
-        # device = torch.device('cuda:'+str(p_number%1) if torch.cuda.is_available() else 'cpu')
-        device = torch.device('cuda:0')
-        model_esm, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-        # model_esm, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
-
-        # model_esm=torch.load("/public/mxp/xiejun/py_project/esm_finetune/myresult/attempt1/model_esm_8.pth")
-        model_esm=model_esm.eval().to(device)
-        model_esmif, alphabet_if = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
-        model_esmif = model_esmif.eval().to(device)
         result_list=[]
         for pdb_file in tqdm(pdb_sub_dir_list):
             # if pdb_file!="4bpk.ent.pdb":
@@ -335,6 +321,10 @@ if __name__ == '__main__':
     parser.add_argument("--workers", '-n', default=2, type=int, help="The first number")
     parser.add_argument("--save_dir", '-s', default="./data/preprocess/gpu/default/", type=str, help="Save directory")
     parser.add_argument("--pdb_folder", '-p', default="./data/pdb/default/", type=str, help="pdb directory")
+    parser.add_argument("--single_process", '-m', default=False, type=bool, help="multiprocess or single")
+
+
+    multiprocessing.set_start_method('spawn')
 
     # assign your pdbs here
     # pdb_folder = "./data_final/pdb/Accepted"
@@ -347,24 +337,42 @@ if __name__ == '__main__':
 
 
 
+    # device = torch.device('cuda:'+str(p_number%1) if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0')
+    model_esm, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+    # model_esm, alphabet = esm.pretrained.esm2_t36_3B_UR50D()
+
+    # model_esm=torch.load("/public/mxp/xiejun/py_project/esm_finetune/myresult/attempt1/model_esm_8.pth")
+    model_esm=model_esm.eval().to(device)
+    model_esmif, alphabet_if = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
+    model_esmif = model_esmif.eval().to(device)
 
 
-    p = Pool(processor)
-    num_pdb = len(pdb_dir_list)
-    n = num_pdb // processor
-    print(num_pdb)
-    for i in range(processor):
-        start = n * i
-        end = num_pdb if i == processor - 1 else n * (i + 1)
-        pdb_sub_dir_list = pdb_dir_list[start:end]
-        print(pdb_sub_dir_list)
-    print(num_pdb)
-    # input("确认信息：")
-    for i in range(processor):
-        start = n * i
-        end = num_pdb if i == processor - 1 else n * (i + 1)
-        pdb_sub_dir_list = pdb_dir_list[start:end]
-        # pdb_sub_dir_list = ['nz']
-        p.apply_async(single_worker, args=(pdb_sub_dir_list, i,args.save_dir,args.pdb_folder))
-    p.close()
-    p.join()
+
+    if args.single_process==False:
+        # multiprocess
+        p = Pool(processor)
+        num_pdb = len(pdb_dir_list)
+        n = num_pdb // processor
+        print(num_pdb)
+        for i in range(processor):
+            start = n * i
+            end = num_pdb if i == processor - 1 else n * (i + 1)
+            pdb_sub_dir_list = pdb_dir_list[start:end]
+            print(pdb_sub_dir_list)
+        print(num_pdb)
+        # input("确认信息：")
+        for i in range(processor):
+            start = n * i
+            end = num_pdb if i == processor - 1 else n * (i + 1)
+            pdb_sub_dir_list = pdb_dir_list[start:end]
+            # pdb_sub_dir_list = ['nz']
+            p.apply_async(single_worker, args=(pdb_sub_dir_list, i,args.save_dir,args.pdb_folder,device,model_esm,alphabet,model_esmif,alphabet_if))
+        p.close()
+        p.join()
+
+
+    else:
+        # single process
+        i=0
+        single_worker(pdb_dir_list, i,args.save_dir,args.pdb_folder,device,model_esm,alphabet,model_esmif,alphabet_if)

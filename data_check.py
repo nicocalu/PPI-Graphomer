@@ -1,7 +1,4 @@
 import numpy as np    
-import esm
-import torch
-import esm.inverse_folding
 import os
 from tqdm import tqdm
 from collections import Counter
@@ -123,3 +120,4 @@ if __name__ == '__main__':
     # plt.savefig(save_folder+"/res_length.png")
 
     print(len(res_length_list))
+    print("completed!")

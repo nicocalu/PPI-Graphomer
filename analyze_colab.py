@@ -1,17 +1,6 @@
 import os
 import re
 import numpy as np
-from Bio.PDB import PDBParser
-from Bio.SeqUtils import seq1
-from collections import defaultdict
-from tqdm import tqdm
-from scipy.spatial.distance import cdist
-from multiprocessing import Pool, cpu_count
-import multiprocessing
-from collections import Counter
-import matplotlib.pyplot as plt
-import esm
-import torch
 import esm.inverse_folding
 import pandas as pd
 from scipy.stats import pearsonr
@@ -19,7 +8,7 @@ from scipy.stats import pearsonr
 
 
 
-index_file = os.path.join("/public/mxp/xiejun/py_project/PP", "index", "INDEX_general_PP.2020")
+index_file = os.path.join("./data/INDEX_general_PP.2020")
 # 获取亲和力信息
 # PDBbind的获取方式，这里计算的是以10为底的log，在后面需要换底公式换掉
 affinity_dict1 = {}
@@ -59,7 +48,7 @@ with open(index_file, 'r') as f:
 
 # benchmark79的亲和力数据
 # 读取CSV文件
-csv_file = '/public/mxp/xiejun/py_project/PPI_affinity/elife-07454-supp4-v4.csv'
+csv_file = './data/elife-07454-supp4-v4.csv'
 data = pd.read_csv(csv_file)
 # 创建包含 PDB 名称和亲和力数值的字典
 affinity_dict3 = dict(zip(data.iloc[:, 0].apply(lambda x: x.replace(".pdb", "")), data.iloc[:, 1]))
@@ -67,7 +56,7 @@ symbol="test"
 colab_result=np.load("./pae_result_"+symbol+".npy",allow_pickle=True)
 colab_list=[]
 true_list=[]
-pdb_list_2chain = os.listdir("/public/mxp/xiejun/py_project/PPI_affinity/data_final/pdb/2chain_"+symbol+"/")
+pdb_list_2chain = os.listdir("./data/pdb/2chain_"+symbol+"/")
 for pdb in colab_result.item().keys():
     # if pdb+".pdb" not in pdb_list_2chain:
     #     continue
@@ -80,9 +69,9 @@ print(len(true_list))
 # 计算皮尔逊相关系数
 if len(colab_list) > 1:  # 至少需要两个数据点
     correlation, _ = pearsonr(true_list, colab_list)
-    print(f"皮尔逊相关系数: {correlation}")
+    print(f"pcc: {correlation}")
 else:
-    print("数据点不足，无法计算皮尔逊相关系数")
+    print("there is not enough data to calculate pcc!")
 
 
 

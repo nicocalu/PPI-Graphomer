@@ -36,23 +36,9 @@ n_fold = 5  # Number of folds for cross-validation
 
 
 
-def download_and_load_model(model_name="esm2_t33_650M_UR50D"):
-    try:
-        model_data_path = '/public/home/ziyang/code/Protein_Engineering_Project/model/esm2_original/' + model_name + '.pt'
-        regression_data_path = '/public/home/ziyang/code/Protein_Engineering_Project/model/esm2_original/' + model_name + '-contact-regression.pt'
-
-        model_data = torch.load(model_data_path)
-        regression_data = torch.load(regression_data_path)
-
-        esm_model, alphabet = esm.pretrained.load_model_and_alphabet_core(model_name, model_data, regression_data)
-    except Exception as e:
-        print(f'加载模型数据失败: {e}')
-        return None, None
-    return esm_model, alphabet
 
 # Data Processing
 print('数据处理...')
-# _, alphabet = download_and_load_model()
 _, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
 
 batch_converter = alphabet.get_batch_converter()
@@ -98,23 +84,14 @@ def load_batches_from_disk(output_path):
 
     # 合并所有批次的数据
     enc_tokens = chunked_cat(enc_tokens, dim=0)
-    print("cat finish1")
     seq_features = chunked_cat(seq_features, dim=0)
-    print("cat finish2")
     coor_features = chunked_cat(coor_features, dim=0)
-    print("cat finish3")
     interface_atoms = chunked_cat(interface_atoms, dim=0)
-    print("cat finish4")
     affinity = chunked_cat(affinity, dim=0)
-    print("cat finish5")
     interaction_type = chunked_cat(interaction_type, dim=0)
-    print("cat finish6")
     interaction_matrix = chunked_cat(interaction_matrix, dim=0)
-    print("cat finish7")
     res_mass_centor = chunked_cat(res_mass_centor, dim=0)
-    print("cat finish8")
     hetatm_features = chunked_cat(hetatm_features, dim=0)
-    print("cat finish9")
     return {
         "protein_names": protein_names,
         "seqs": seqs,

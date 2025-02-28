@@ -1,19 +1,14 @@
 import os
 import math
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.utils.data as Data
 from torchinfo import summary
 import esm
-import torch.nn.functional as F
-import model_mpnn
-
-from audtorch.metrics.functional import pearsonr
+# import model_final
 import tqdm
 import pandas as pd
 import argparse
@@ -37,7 +32,7 @@ d_ff = 128  # FeedForward dimension
 d_k = d_v = 32  # Dimension of K(=Q), V
 n_layers_en = 2  # Number of Encoder layers
 n_heads = 8  # Number of heads in Multi-Head Attention
-batch_size = 26
+batch_size = 2
 n_fold = 5  # Number of folds for cross-validation
 
 # Data Processing
@@ -212,10 +207,10 @@ def evaluate(model, loader, criterion,save_dir):
     return epoch_loss / len(loader),output_all,affinity_all
 
 
-config = model_mpnn.Config(
-    pro_vocab_size=len(batch_converter.alphabet.all_toks), device=device, pro_len=pro_len,  
-    d_embed=d_embed, d_ff=d_ff, d_k=d_k, d_v=d_v, n_layers_en=n_layers_en, n_heads=n_heads
-)
+# config = model_final.Config(
+#     pro_vocab_size=len(batch_converter.alphabet.all_toks), device=device, pro_len=pro_len,  
+#     d_embed=d_embed, d_ff=d_ff, d_k=d_k, d_v=d_v, n_layers_en=n_layers_en, n_heads=n_heads
+# )
 
 
 

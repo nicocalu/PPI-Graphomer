@@ -2,10 +2,6 @@ import os
 import math
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import numpy as np
-import esm
 # Set CUDA devices
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -301,9 +297,9 @@ class ESM_linear(nn.Module):
     def __init__(self, config):
         super(ESM_linear, self).__init__()
         self.fc = nn.Sequential(
-            nn.Linear(1280, 64),
+            nn.Linear(1280, 32),
             # nn.ReLU(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.5),
             # nn.Linear(128, ),
             nn.ReLU()
 
@@ -317,33 +313,12 @@ class ESMIF_linear(nn.Module):
         super(ESMIF_linear, self).__init__()
         self.fc = nn.Sequential(
             nn.Linear(512, 32),
-            nn.Dropout(0.4),
+            nn.Dropout(0.5),
             nn.ReLU()
         )
     def forward(self, pockets):
         return self.fc(pockets)  # (batch_size, d_embed)
 
-class HETATM_linear(nn.Module):
-    def __init__(self, config):
-        super(HETATM_linear, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(396, 1),
-            nn.Dropout(0.4),
-            nn.ReLU()
-        )
-    def forward(self, pockets):
-        return self.fc(pockets)  # (batch_size, d_embed)
-
-class MPNN_linear(nn.Module):
-    def __init__(self, config):
-        super(MPNN_linear, self).__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(128, 32),
-            nn.Dropout(0.4),
-            nn.ReLU()
-        )
-    def forward(self, pockets):
-        return self.fc(pockets)  # (batch_size, d_embed)
 
 
 class Transformer(nn.Module):
@@ -354,13 +329,11 @@ class Transformer(nn.Module):
         self.layer_norm_esm = nn.LayerNorm([config.pro_len,1280],elementwise_affine=False)
         self.layer_norm_esmif = nn.LayerNorm([config.pro_len,512],elementwise_affine=False)
         # self.layer_norm_hetatm = nn.LayerNorm([config.pro_len,396])
-        self.layer_norm_hetatm = nn.LayerNorm([config.pro_len,396],elementwise_affine=False)
         # self.layer_norm_esm_pretrain = nn.LayerNorm([config.pro_len,1280],elementwise_affine=False)
         # self.layer_norm_mpnn = nn.LayerNorm([config.pro_len,128],elementwise_affine=False)
         # self.mamba_model = create_sequence_to_vector_model(config.pro_vocab_size)
         self.compress_esm = ESM_linear(config)
         self.compress_esmif = ESMIF_linear(config)
-        self.compress_hetatm = HETATM_linear(config)
         # self.compress_esm_pretrain = ESM_linear(config)
         # self.compress_mpnn = MPNN_linear(config)
 
@@ -368,7 +341,7 @@ class Transformer(nn.Module):
         self.encoder2=Encoder2(config)
         # self.encoder2_samechain=Encoder2(config)
 
-        self.projection = nn.Linear(194, 1)
+        self.projection = nn.Linear(128, 1)
         # self.projection_difchain = nn.Linear(config.d_embed, 1)
         # self.projection_samechain = nn.Linear(config.d_embed, 1)
         # self.projection = nn.Linear(16, 1)
@@ -385,7 +358,6 @@ class Transformer(nn.Module):
         # mpnn_features = self.layer_norm_mpnn(mpnn_features)
 
 
-        hetatm_features =  self.layer_norm_hetatm(hetatm_features)
 
 
         enc_outputs1 = self.compress_esm(seq_features)
@@ -393,10 +365,9 @@ class Transformer(nn.Module):
 
         # enc_outputs3 =  self.compress_mpnn(mpnn_features)
 
-        enc_outputs4 =  self.compress_hetatm(hetatm_features)
 
 
-        enc_outputs_enc=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4), dim=2)
+        enc_outputs_enc=torch.cat((enc_outputs1,enc_outputs2), dim=2)
 
 
 
@@ -407,7 +378,7 @@ class Transformer(nn.Module):
         distance_matrix=(-distance_matrix/torch.max(distance_matrix)).add(1)
         distance_matrix[distance_matrix >= 1] = 0
         enc_outputs_enc=self.encoder2(enc_outputs_enc,enc_tokens,interface_atoms,interaction_type,interaction_matrix,res_mass_centor,distance_matrix)
-        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs4,enc_outputs_enc), dim=2)
+        enc_outputs=torch.cat((enc_outputs1,enc_outputs2,enc_outputs_enc), dim=2)
 
         enc_outputs = torch.mean(enc_outputs,dim=1)
 
