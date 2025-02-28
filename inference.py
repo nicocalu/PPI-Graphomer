@@ -525,7 +525,7 @@ def extract_protein_cpu_data(pdb_file):
     A_positions = get_ca_positions(final_res_list)
     B_positions = get_ca_positions(hetatm_res_list)
     # hetatm_feat_list=[]
-    hetatm_list=np.load("hetatm_list.npy")
+    hetatm_list=np.load("./data/hetatm_list.npy")
 
     # for h_res in hetatm_res_list:
     #     # if h_res.get_resname() in metal_ions:
