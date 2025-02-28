@@ -31,6 +31,11 @@ pip install -r requirements.txt
 ```
 Since installing torch_scatter directly might lead to issues, I opted for a local installation method. 
 You can download the package from [[link](https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp39-cp39-linux_x86_64.whl)] and then execute "pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl" to install it.
+Alternatively, you can run the following code for installation.
+```bash
+wget https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp39-cp39-linux_x86_64.whl
+pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl
+```
 Additionally, there may be some issues with the installed ESM library. You will need to navigate to the location of the downloaded library at your conda path (such as "/public/home/xiejun/miniconda3/envs/ppi_graphomer/lib/python3.9/site-packages/esm/inverse_folding"), and modify line 137 in util.py from batch = [(coords, None, seq)] to batch = [(coords, None, None)].
 
 I have also prepared a compressed package of the environment I used[https://drive.google.com/file/d/1P34xuDxNu9WFvPK6JoKxqo3QWA2P_azm/view?usp=sharing]. If you are using a Linux platform with Miniconda3, you can download the file and extract it into your miniconda/envs directory.
