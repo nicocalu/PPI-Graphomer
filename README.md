@@ -71,7 +71,7 @@ For these pre-processed files, we have organized a final dataset for testing, wh
 ```bash
 python evaluate.py  --batch_path [path_to_BatchData]
 ```
-This script will print the model and output the correlation coefficient between the predicted values and labels for the batch.
+This script will print the model and output the correlation coefficient between the predicted values and labels for the batch. The specific predicted values can be viewed in file "./result/default/evaluate.csv".
 
 
 
