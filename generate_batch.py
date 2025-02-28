@@ -9,7 +9,7 @@ import random
 import tqdm
 import argparse
 
-
+# This code will further organize the data to facilitate its use in subsequent models.
 
 batch_size = 26
 pro_len = 2000  # Encoder max sequence length
