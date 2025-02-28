@@ -9,6 +9,8 @@ import esm
 import torch
 import esm.inverse_folding
 import argparse
+import warnings
+warnings.filterwarnings("ignore")
 
 # 设置路径
 # pdb_folder = "/public/mxp/xiejun/py_project/PP_1"
