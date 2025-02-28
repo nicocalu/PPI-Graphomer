@@ -12,7 +12,8 @@ from collections import OrderedDict
 import torch.nn.functional as F
 import torch.utils.data as Data
 import argparse
-
+import warnings
+warnings.filterwarnings("ignore")
 
 # 常量定义
 standard_res =[
@@ -631,8 +632,8 @@ def extract_protein_cpu_data(pdb_file):
     seq_single_chain = [''.join(seq[i] for i in range(len(seq)) if chain_id_res[i] == x) for x in list_to_ordered_set(chain_id_res)]
 
 
-    if affinity_dict.get(protein_name, None) is None:
-        print("affinity error!",protein_name)
+    # if affinity_dict.get(protein_name, None) is None:
+    #    print("affinity error!",protein_name)
 
     # 返回蛋白质信息字典
     protein_data = {
