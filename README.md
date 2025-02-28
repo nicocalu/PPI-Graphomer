@@ -33,6 +33,10 @@ Since installing torch_scatter directly might lead to issues, I opted for a loca
 You can download the package from [[link](https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp39-cp39-linux_x86_64.whl)] and then execute "pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl" to install it.
 Additionally, there may be some issues with the installed ESM library. You will need to navigate to the location of the downloaded library at your conda path (such as "/public/home/xiejun/miniconda3/envs/ppi_graphomer/lib/python3.9/site-packages/esm/inverse_folding"), and modify line 137 in util.py from batch = [(coords, None, seq)] to batch = [(coords, None, None)].
 
+I have also prepared a compressed package of the environment I used[https://drive.google.com/file/d/1P34xuDxNu9WFvPK6JoKxqo3QWA2P_azm/view?usp=sharing]. If you are using a Linux platform with Miniconda3, you can download the file and extract it into your miniconda/envs directory.
+
+
+
 ## Usage
 We provide two methods to run the script, single pdb or batch.
 
@@ -47,9 +51,9 @@ If you need to make batch predictions, you should follow these steps:
 
 ```bash
 python preprocess_cpu.py --workers [cpu numbers] --save_dir [path_to_PreprocessedCpuData] --pdb_folder [path_to_pdbs]
-python preprocess_gpu.py --workers [cpu numbers] --save_dir [path_to_PreprocessedGpuData] --pdb_folder [path_to_pdbs]
+python preprocess_gpu.py --workers [cpu numbers] --save_dir [path_to_PreprocessedGpuData] --pdb_folder [path_to_pdbs] --single_process [is_single_process]
 ```
-These scripts will generate some pre-processed data, which will be stored in the 'preprocess' folder, such as "yourpath/PPI-Graphomer/data/preprocess/cpu/default/"
+These scripts will generate some pre-processed data, which will be stored in the 'preprocess' folder, such as "yourpath/PPI-Graphomer/data/preprocess/cpu/default/". When running preprocess_gpu.py on a personal computer with limited GPU memory, it needs to be modified to single-process mode; otherwise, the feature extraction will fail.
 ```bash
 python data_check.py  --cpu_path [path_to_PreprocessedCpuData] -gpu_path [path_to_PreprocessedGpuData] --save_folder [path_to_CheckedData]
 ```
@@ -58,10 +62,13 @@ This script will check whether the previous outputs conform to the specification
 python generate_batch.py  --data [path_to_CheckedData] -gpu_path [path_to_PreprocessedGpuData] --batch_path [path_to_BatchData]
 ```
 This script will further organize the data.
+For these pre-processed files, we have organized a final dataset for testing, which is available for download in the cloud[https://drive.google.com/file/d/1P34xuDxNu9WFvPK6JoKxqo3QWA2P_azm/view?usp=drive_link]. This data is derived from Test Set 1 mentioned in the paper.
 ```bash
 python evaluate.py  --batch_path [path_to_BatchData]
 ```
 This script will print the model and output the correlation coefficient between the predicted values and labels for the batch.
+
+
 
 We have divided the whole step into several items in order to speed up the process by separating the esm large model prediction process from the affinity prediction process.
 
