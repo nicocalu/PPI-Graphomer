@@ -12,11 +12,12 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
-# 设置路径
-# pdb_folder = "/public/mxp/xiejun/py_project/PP_1"
-# pdb_folder = "/public/mxp/xiejun/py_project/PPI-Graphomer/data_final/pdb/sequence_renamed1-4"
 
-# 常量定义
+
+# This code will extract information about intermolecular forces.
+
+
+
 standard_res =[
         "GLY" , 'G',
         "ALA" , 'A',
