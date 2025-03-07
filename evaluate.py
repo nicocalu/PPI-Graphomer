@@ -239,7 +239,7 @@ if __name__ == '__main__':
     ff = open(args.result_path + 'evaluate.txt', 'w')
 
     for fold in range(n_fold):
-        print(f"第 {fold} 折：")
+        # print(f"第 {fold} 折：")
         if fold != 0:
             continue
         fold=0
