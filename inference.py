@@ -827,7 +827,7 @@ def inference(pdb_path,device="cuda"):
         # model_esm=torch.load("/public/mxp/xiejun/py_project/esm_finetune/myresult/attempt1/model_esm_8.pth")
         model_esm=model_esm.eval().to(device)
         model_esmif, alphabet_if = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
-        model_esmif = model_esmif.eval().to(device)
+        model_esmif = model_esmif.eval()
         gpu_data=extract_protein_data(pdb_path,model_esm,alphabet,model_esmif,alphabet_if,device)
         torch.cuda.empty_cache()
         cpu_data=extract_protein_cpu_data(pdb_path)
