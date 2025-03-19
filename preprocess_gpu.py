@@ -348,7 +348,7 @@ if __name__ == '__main__':
     # model_esm=torch.load("/public/mxp/xiejun/py_project/esm_finetune/myresult/attempt1/model_esm_8.pth")
     model_esm=model_esm.eval().to(device)
     model_esmif, alphabet_if = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
-    model_esmif = model_esmif.eval().to(device)
+    model_esmif = model_esmif.eval()
 
 
 
