@@ -36,11 +36,12 @@ Alternatively, you can run the following code for installation.
 wget https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp39-cp39-linux_x86_64.whl
 pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl
 ```
-Additionally, there may be some issues with the installed ESM library. You will need to navigate to the location of the downloaded library at your conda path (such as "/public/home/xiejun/miniconda3/envs/ppi_graphomer/lib/python3.9/site-packages/esm/inverse_folding"), and modify line 137 in util.py from batch = [(coords, None, seq)] to batch = [(coords, None, None)].
+~~Additionally, there may be some issues with the installed ESM library. You will need to navigate to the location of the downloaded library at your conda path (such as "/public/home/xiejun/miniconda3/envs/ppi_graphomer/lib/python3.9/site-packages/esm/inverse_folding"), and modify line 137 in util.py from batch = [(coords, None, seq)] to batch = [(coords, None, None)].~~
+We have determined that the issue might have originated from the particular version of the ESM code we employed. After updating to a newer version of ESM, the issue has been resolved. We have completed the necessary code modifications accordingly.
 
 I have also prepared a compressed package of the environment I used[https://drive.google.com/file/d/1P34xuDxNu9WFvPK6JoKxqo3QWA2P_azm/view?usp=sharing]. If you are using a Linux platform with Miniconda3, you can download the file and extract it into your miniconda/envs directory.
 
-
+**Note:** Our tests are conducted by default in a CUDA 12 environment. Some issues may arise when using CUDA 11.
 
 ## Usage
 We provide two methods to run the script, single pdb or batch.
@@ -67,13 +68,33 @@ This script will check whether the previous outputs conform to the specification
 python generate_batch.py  --data [path_to_CheckedData] -gpu_path [path_to_PreprocessedGpuData] --batch_path [path_to_BatchData]
 ```
 This script will further organize the data.
-For these pre-processed files, we have organized a final dataset for testing, which is available for download in the cloud[https://drive.google.com/file/d/1P34xuDxNu9WFvPK6JoKxqo3QWA2P_azm/view?usp=drive_link]. This data is derived from Test Set 1 mentioned in the paper.
+For these pre-processed files, we have organized a final dataset for testing, which is available for download in the cloud[https://drive.google.com/file/d/1Ibzj-Mup-XqKQADPCPYWhKxOoN9Pm98a/view?usp=sharing]. This data is derived from Test Set 1 mentioned in the paper.
 ```bash
 python evaluate.py  --batch_path [path_to_BatchData]
 ```
 This script will print the model and output the correlation coefficient between the predicted values and labels for the batch. The specific predicted values can be viewed in file "./result/default/evaluate.csv".
 
 
-
 We have divided the whole step into several items in order to speed up the process by separating the esm large model prediction process from the affinity prediction process.
+
+We have also provided a Dockerfile, which has been tested in my local environment (WSL: Ubuntu-22.04). You can build a Docker environment and perform the tests using the following instructions.
+
+
+
+```bash
+git clone https://github.com/xiebaoshu058/ppi-graphomer.git
+cd ppi-graphomer
+docker build -t ppi-graphomer .
+
+docker run --gpus all -v /host/path/1E96.pdb:/data/1E96.pdb \
+  ppi-graphomer inference.py --pdb /data/1E96.pdb
+
+# run interactively
+docker run -it --gpus all \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/model:/app/model \
+  -v $(pwd)/result:/app/result \
+  --entrypoint "" ppi-graphomer /bin/bash
+```
+
 
