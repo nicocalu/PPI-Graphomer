@@ -86,7 +86,7 @@ git clone https://github.com/xiebaoshu058/ppi-graphomer.git
 cd ppi-graphomer
 docker build -t ppi-graphomer .
 
-docker run --gpus all -v /host/path/1E96.pdb:/data/1E96.pdb \
+docker run --gpus all -v $(pwd)/data/1E96.pdb:/data/1E96.pdb \
   ppi-graphomer inference.py --pdb /data/1E96.pdb
 
 # run interactively
