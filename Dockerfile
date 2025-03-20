@@ -24,7 +24,7 @@ RUN wget https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21
     && conda run -n ppi-graphomer pip install torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl \
     && rm torch_scatter-2.1.2+pt21cu121-cp39-cp39-linux_x86_64.whl
 
-SHELL ["conda", "run", "-n", "your_env_name", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "ppi-graphomer", "/bin/bash", "-c"]
 
-ENTRYPOINT ["conda", "run", "-n", "myenv", "python"]
+ENTRYPOINT ["conda", "run", "-n", "ppi-graphomer", "python"]
 CMD ["--help"]  # 默认显示帮助信息
